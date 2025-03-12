@@ -1,0 +1,35 @@
+# requirements.txt
+
+# Flask and extensions
+Flask
+Flask-SQLAlchemy
+Flask-Migrate
+Flask-JWT-Extended
+Flask-Cors
+Flask-smorest
+
+# API Documentation
+flasgger
+
+# Database
+SQLAlchemy
+
+# Validation and serialization
+marshmallow
+email-validator
+
+# Password hashing
+passlib
+bcrypt
+
+# Utilities
+python-dotenv
+Werkzeug
+pydantic
+
+# Testing
+pytest
+pytest-flask
+
+# WSGI server
+gunicorn
