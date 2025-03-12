@@ -35,6 +35,9 @@ class User(db.Model):
     def is_admin(self):
         return self.role == 'admin'
 
+    def is_teacher(self):
+        return self.role == 'teacher'
+
     @hybrid_property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"

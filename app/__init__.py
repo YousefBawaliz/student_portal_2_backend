@@ -44,8 +44,11 @@ def create_app(config_name="development"):
     # Register blueprints
     from app.api.users import blp as users_blp
     from app.api.auth import blp as auth_blp
+    from app.api.courses import blp as courses_blp
+    
     api.register_blueprint(users_blp, url_prefix="/api/users")
     api.register_blueprint(auth_blp, url_prefix="/api/auth")
+    api.register_blueprint(courses_blp, url_prefix="/api/courses")
     
     return app
 

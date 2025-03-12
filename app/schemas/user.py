@@ -1,11 +1,13 @@
 from marshmallow import Schema, fields, validate
 
+VALID_ROLES = ['admin', 'teacher', 'student']
+
 class UserSchema(Schema):
     id = fields.Int(dump_only=True)
     email = fields.Email(required=True)
     first_name = fields.Str(required=True, validate=validate.Length(min=1, max=50))
     last_name = fields.Str(required=True, validate=validate.Length(min=1, max=50))
-    role = fields.Str(validate=validate.OneOf(['admin', 'student']), load_default='student')
+    role = fields.Str(validate=validate.OneOf(VALID_ROLES), load_default='student')
     theme_preference = fields.Str(validate=validate.OneOf(['light', 'dark']), load_default='light')
     profile_image = fields.Str()
     created_at = fields.DateTime(dump_only=True)
@@ -19,7 +21,7 @@ class UserCreateSchema(Schema):
                          description="User's password (min 6 characters)")
     first_name = fields.Str(required=True, validate=validate.Length(min=1, max=50))
     last_name = fields.Str(required=True, validate=validate.Length(min=1, max=50))
-    role = fields.Str(validate=validate.OneOf(['admin', 'student']), load_default='student')
+    role = fields.Str(validate=validate.OneOf(VALID_ROLES), load_default='student')
     theme_preference = fields.Str(validate=validate.OneOf(['light', 'dark']), load_default='light')
     profile_image = fields.Str(required=False)
 
@@ -29,7 +31,7 @@ class UserUpdateSchema(Schema):
     password = fields.Str(load_only=True, validate=validate.Length(min=6))
     first_name = fields.Str(validate=validate.Length(min=1, max=50))
     last_name = fields.Str(validate=validate.Length(min=1, max=50))
-    role = fields.Str(validate=validate.OneOf(['admin', 'student']))
+    role = fields.Str(validate=validate.OneOf(VALID_ROLES))
     theme_preference = fields.Str(validate=validate.OneOf(['light', 'dark']))
     profile_image = fields.Str()
 

@@ -35,6 +35,15 @@ class DevelopmentConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    # Disable CSRF tokens in the Forms
+    WTF_CSRF_ENABLED = False
+    # Make the password hashing faster for tests
+    BCRYPT_LOG_ROUNDS = 4
+    # Disable JWT expiration for testing
+    JWT_ACCESS_TOKEN_EXPIRES = False
+    JWT_REFRESH_TOKEN_EXPIRES = False
+    # Disable file size limit for testing
+    MAX_CONTENT_LENGTH = None
 
 class ProductionConfig(Config):
     DEBUG = False

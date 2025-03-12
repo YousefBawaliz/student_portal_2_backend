@@ -1,6 +1,7 @@
 # /backend/app.py
 
 import os
+from flask import Flask
 from app import create_app
 from app.models import db
 
@@ -14,12 +15,12 @@ def init_db():
     db.create_all()
     print("Initialized the database.")
 
-@app.cli.command("seed-db")
-def seed_db():
-    """Seed the database with sample data."""
-    from app.utils.seeder import seed_database
-    seed_database()
-    print("Database seeded with sample data.")
+# @app.cli.command("seed-db")
+# def seed_db():
+#     """Seed the database with sample data."""
+#     from app.utils.seeder import seed_database
+#     seed_database()
+#     print("Database seeded with sample data.")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
