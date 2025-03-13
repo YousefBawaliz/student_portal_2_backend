@@ -35,6 +35,7 @@ class DevelopmentConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    JWT_SECRET_KEY = 'test-secret-key'
     # Disable CSRF tokens in the Forms
     WTF_CSRF_ENABLED = False
     # Make the password hashing faster for tests
@@ -48,7 +49,8 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     DEBUG = False
     # In production, ensure SECRET_KEY and JWT_SECRET_KEY are set via environment variables
-    
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
     # HTTPS configuration
     SESSION_COOKIE_SECURE = True
     REMEMBER_COOKIE_SECURE = True
