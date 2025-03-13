@@ -1,5 +1,6 @@
 import os
 from flask import Flask, jsonify
+from flask_cors import CORS
 from flask_smorest import Api
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -13,6 +14,18 @@ jwt = JWTManager()
 
 def create_app(config_name="development"):
     app = Flask(__name__)
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": [
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "https://localhost:*",
+                "https://127.0.0.1:*"
+            ],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+    })
     
     # Load the config
     app.config.from_object(config[config_name])
