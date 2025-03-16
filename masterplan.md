@@ -151,6 +151,23 @@ The application will feature an engaging and interactive UI with animations and 
 - created_at
 - updated_at
 
+#### Assessment
+
+- id (primary key)
+- title
+- type (quiz, assignment, exam)
+- class_id (foreign key)
+- date
+
+
+#### Score 
+
+- id (primary key)
+- student_id (foreign key)
+- assessment_id (foreign key)
+- score_value
+- submission_date
+
 #### CalendarEvent
 - id (PK)
 - class_id (FK to Class)

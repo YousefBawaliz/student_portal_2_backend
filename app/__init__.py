@@ -59,11 +59,15 @@ def create_app(config_name="development"):
     from app.api.auth import blp as auth_blp
     from app.api.courses import blp as courses_blp
     from app.api.classes import blp as classes_blueprint
+    from app.api.assessments import blp as assessments_blueprint
+    from app.api.scores import blp as scores_blueprint
     
     api.register_blueprint(users_blp, url_prefix="/api/users")
     api.register_blueprint(auth_blp, url_prefix="/api/auth")
     api.register_blueprint(courses_blp, url_prefix="/api/courses")
     api.register_blueprint(classes_blueprint, url_prefix='/api/classes')
+    api.register_blueprint(assessments_blueprint, url_prefix="/api/assessments")
+    api.register_blueprint(scores_blueprint, url_prefix="/api/scores")
     
     return app
 

@@ -8,6 +8,8 @@ from app.models.user import User
 from app.models.course import Course
 from app.models.class_ import Class
 from app.models.class_enrollment import ClassEnrollment
+from app.models.assessment import Assessment
+from app.models.score import Score
 # from app.models.module import Module
 # from app.models.content import Content
 # from app.models.announcement import Announcement

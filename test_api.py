@@ -1,7 +1,7 @@
 import requests
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 
 BASE_URL = "http://127.0.0.1:5000/api"
@@ -358,19 +358,215 @@ def test_classes_flow():
         # Clean up after tests
         cleanup_test_classes()
 
-if __name__ == "__main__":
-    print("\nStarting API tests...")
+def test_assessments_flow():
+    print("\n=== Testing Assessments Flow ===")
+    
     try:
-        test_auth_flow()
-        print("\nAuth flow tests passed!")
-        
-        test_courses_flow()
-        print("\nCourse flow tests passed!")
-        
-        test_classes_flow()
-        print("\nClass flow tests passed!")
-        
-        print("\nAll tests completed successfully!")
+        # Get teacher token
+        teacher_login = {
+            "email": "teacher@example.com",
+            "password": "teacher123"
+        }
+        teacher_response = requests.post(f"{BASE_URL}/auth/login", json=teacher_login)
+        assert teacher_response.status_code == 200
+        teacher_token = teacher_response.json()['access_token']
+        teacher_headers = {
+            "Authorization": f"Bearer {teacher_token}",
+            "Content-Type": "application/json"
+        }
+
+        # 1. Create new assessment
+        print("\n1. Creating new assessment...")
+        assessment_data = {
+            "class_id": 1,  # Assuming class_id 1 exists
+            "title": f"Test Assessment {datetime.now().strftime('%Y%m%d-%H%M%S')}",
+            "type": "quiz",
+            "date": (datetime.now() + timedelta(days=7)).isoformat()
+        }
+
+        create_response = requests.post(
+            f"{BASE_URL}/assessments/",
+            json=assessment_data,
+            headers=teacher_headers
+        )
+        print(f"Create assessment status: {create_response.status_code}")
+        print(f"Create assessment response: {json.dumps(create_response.json(), indent=2)}")
+        assert create_response.status_code == 201
+        assessment_id = create_response.json()['id']
+
+        # 2. Get all assessments
+        print("\n2. Getting all assessments...")
+        list_response = requests.get(f"{BASE_URL}/assessments/", headers=teacher_headers)
+        print(f"List assessments status: {list_response.status_code}")
+        print(f"List assessments response: {json.dumps(list_response.json(), indent=2)}")
+        assert list_response.status_code == 200
+
+        # 3. Get specific assessment
+        print(f"\n3. Getting assessment with ID {assessment_id}...")
+        get_response = requests.get(
+            f"{BASE_URL}/assessments/{assessment_id}",
+            headers=teacher_headers
+        )
+        print(f"Get assessment status: {get_response.status_code}")
+        print(f"Get assessment response: {json.dumps(get_response.json(), indent=2)}")
+        assert get_response.status_code == 200
+
+        # 4. Update assessment
+        print("\n4. Updating assessment...")
+        update_data = {
+            "title": "Updated Test Assessment",
+            "date": (datetime.now() + timedelta(days=14)).isoformat()
+        }
+        update_response = requests.put(
+            f"{BASE_URL}/assessments/{assessment_id}",
+            json=update_data,
+            headers=teacher_headers
+        )
+        print(f"Update assessment status: {update_response.status_code}")
+        print(f"Update assessment response: {json.dumps(update_response.json(), indent=2)}")
+        assert update_response.status_code == 200
+
+        # 5. Get assessment scores
+        print("\n5. Getting assessment scores...")
+        scores_response = requests.get(
+            f"{BASE_URL}/assessments/{assessment_id}/scores",
+            headers=teacher_headers
+        )
+        print(f"Get scores status: {scores_response.status_code}")
+        print(f"Get scores response: {json.dumps(scores_response.json(), indent=2)}")
+        assert scores_response.status_code == 200
+
+        # 6. Delete assessment
+        print("\n6. Deleting assessment...")
+        delete_response = requests.delete(
+            f"{BASE_URL}/assessments/{assessment_id}",
+            headers=teacher_headers
+        )
+        print(f"Delete assessment status: {delete_response.status_code}")
+        assert delete_response.status_code == 200
+
     except Exception as e:
-        print(f"\nTests failed: {str(e)}")
-        print("Test execution stopped due to error.")
+        print(f"\nError during assessment test: {str(e)}")
+        raise
+
+def test_scores_flow():
+    print("\n=== Testing Scores Flow ===")
+    
+    try:
+        # Get teacher token
+        teacher_login = {
+            "email": "teacher@example.com",
+            "password": "teacher123"
+        }
+        teacher_response = requests.post(f"{BASE_URL}/auth/login", json=teacher_login)
+        assert teacher_response.status_code == 200
+        teacher_token = teacher_response.json()['access_token']
+        teacher_headers = {
+            "Authorization": f"Bearer {teacher_token}",
+            "Content-Type": "application/json"
+        }
+
+        # Get student ID
+        student_login = {
+            "email": "student@example.com",
+            "password": "student123"
+        }
+        student_response = requests.post(f"{BASE_URL}/auth/login", json=student_login)
+        student_id = student_response.json()['user']['id']
+
+        # Get all existing scores for the student and delete them
+        print("\nClearing existing scores...")
+        existing_scores = requests.get(
+            f"{BASE_URL}/scores/student/{student_id}",
+            headers=teacher_headers
+        )
+        for score in existing_scores.json():
+            requests.delete(
+                f"{BASE_URL}/scores/{score['id']}",
+                headers=teacher_headers
+            )
+
+        # 1. Create new score
+        print("\n1. Creating new score...")
+        score_data = {
+            "student_id": student_id,
+            "assessment_id": 3,  # Using assessment_id 3 (Data Structures Project) from init_db.py
+            "score_value": 95.5,
+            "feedback": "Excellent work!"
+        }
+
+        create_response = requests.post(
+            f"{BASE_URL}/scores/",
+            json=score_data,
+            headers=teacher_headers
+        )
+        print(f"Create score status: {create_response.status_code}")
+        print(f"Create score response: {json.dumps(create_response.json(), indent=2)}")
+        assert create_response.status_code == 201
+        score_id = create_response.json()['id']
+
+        # 2. Get specific score
+        print(f"\n2. Getting score with ID {score_id}...")
+        get_response = requests.get(
+            f"{BASE_URL}/scores/{score_id}",
+            headers=teacher_headers
+        )
+        print(f"Get score status: {get_response.status_code}")
+        print(f"Get score response: {json.dumps(get_response.json(), indent=2)}")
+        assert get_response.status_code == 200
+
+        # 3. Update score
+        print("\n3. Updating score...")
+        update_data = {
+            "score_value": 97.0,
+            "feedback": "Updated feedback - Outstanding performance!"
+        }
+        update_response = requests.put(
+            f"{BASE_URL}/scores/{score_id}",
+            json=update_data,
+            headers=teacher_headers
+        )
+        print(f"Update score status: {update_response.status_code}")
+        print(f"Update score response: {json.dumps(update_response.json(), indent=2)}")
+        assert update_response.status_code == 200
+
+        # 4. Get student scores
+        print("\n4. Getting student scores...")
+        student_scores_response = requests.get(
+            f"{BASE_URL}/scores/student/{student_id}",
+            headers=teacher_headers
+        )
+        print(f"Get student scores status: {student_scores_response.status_code}")
+        print(f"Get student scores response: {json.dumps(student_scores_response.json(), indent=2)}")
+        assert student_scores_response.status_code == 200
+
+        # 5. Get student score by assessment title
+        print("\n5. Getting student score by assessment title...")
+        title_response = requests.get(
+            f"{BASE_URL}/scores/student/{student_id}/assessment",
+            params={"title": "Test Assessment"},
+            headers=teacher_headers
+        )
+        print(f"Get score by title status: {title_response.status_code}")
+        print(f"Get score by title response: {json.dumps(title_response.json(), indent=2)}")
+        assert title_response.status_code == 200
+
+        # 6. Delete score
+        print("\n6. Deleting score...")
+        delete_response = requests.delete(
+            f"{BASE_URL}/scores/{score_id}",
+            headers=teacher_headers
+        )
+        print(f"Delete score status: {delete_response.status_code}")
+        assert delete_response.status_code == 200
+
+    except Exception as e:
+        print(f"\nError during scores test: {str(e)}")
+        raise
+
+if __name__ == '__main__':
+    test_auth_flow()
+    test_courses_flow()
+    test_classes_flow()
+    test_assessments_flow()
+    test_scores_flow()
