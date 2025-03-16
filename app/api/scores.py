@@ -1,4 +1,4 @@
-from flask.views import MethodView
+from flask.views import MethodView, request
 from flask_smorest import Blueprint, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError

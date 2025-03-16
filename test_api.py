@@ -466,7 +466,7 @@ def test_scores_flow():
             "Content-Type": "application/json"
         }
 
-        # Get student ID
+        # Get student ID (using student@example.com from init_db.py)
         student_login = {
             "email": "student@example.com",
             "password": "student123"
@@ -540,11 +540,11 @@ def test_scores_flow():
         print(f"Get student scores response: {json.dumps(student_scores_response.json(), indent=2)}")
         assert student_scores_response.status_code == 200
 
-        # 5. Get student score by assessment title
+        # 5. Get student score by assessment title (using the assessment title we created the score for)
         print("\n5. Getting student score by assessment title...")
         title_response = requests.get(
             f"{BASE_URL}/scores/student/{student_id}/assessment",
-            params={"title": "Test Assessment"},
+            params={"title": "Data Structures Project"},  # Changed to match the assessment we created score for
             headers=teacher_headers
         )
         print(f"Get score by title status: {title_response.status_code}")
