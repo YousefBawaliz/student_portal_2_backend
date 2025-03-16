@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
 from flask_smorest import Api
 from flask_sqlalchemy import SQLAlchemy
@@ -14,21 +14,45 @@ jwt = JWTManager()
 
 def create_app(config_name="development"):
     app = Flask(__name__)
+    
+    # Add preflight request handler
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            response = make_response()
+            response.headers.add("Access-Control-Allow-Origin", request.headers.get("Origin", "*"))
+            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+            response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            response.headers.add("Access-Control-Allow-Credentials", "true")
+            return response
+    
     CORS(app, resources={
         r"/api/*": {
             "origins": [
+                "http://localhost:5173",
                 "http://localhost:*",
                 "http://127.0.0.1:*",
                 "https://localhost:*",
                 "https://127.0.0.1:*"
             ],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"]
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True,
+            "expose_headers": ["Content-Type", "Authorization"],
+            "allow_credentials": True
         }
-    })
+    }, supports_credentials=True)
     
     # Load the config
     app.config.from_object(config[config_name])
+    
+    # Add SQLite-specific configuration
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'connect_args': {
+            'timeout': 30,  # Increase timeout
+            'check_same_thread': False  # Allow multiple threads
+        }
+    }
     
     # Set API configuration if not in config
     if "API_TITLE" not in app.config:

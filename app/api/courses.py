@@ -15,17 +15,8 @@ class CourseList(MethodView):
     @jwt_required()
     @blp.response(200, CourseSchema(many=True))
     def get(self):
-        """Get all courses (filtered by role)"""
-        current_user = User.query.get_or_404(int(get_jwt_identity()))
-        
-        if current_user.is_admin():
-            return Course.query.all()
-        elif current_user.role == 'teacher':
-            return Course.query.join(Course.classes).filter_by(teacher_id=current_user.id).all()
-        else:
-            return Course.query.join(Course.classes)\
-                .join('class_enrollment')\
-                .filter_by(student_id=current_user.id).all()
+        """Get all courses"""
+        return Course.query.all()
 
     @jwt_required()
     @blp.arguments(CourseCreateSchema)
@@ -35,20 +26,20 @@ class CourseList(MethodView):
         current_user = User.query.get_or_404(int(get_jwt_identity()))
         
         if not current_user.is_admin():
-            abort(403, message="Only admins can create courses")
+            abort(403, message="Admin access required")
 
-        course = Course(
-            course_code=course_data['course_code'],
-            title=course_data['title'],
-            description=course_data.get('description', '')
-        )
+        course = Course(**course_data)
         
         try:
             db.session.add(course)
             db.session.commit()
-            return course
+            return course, 201
         except IntegrityError:
-            abort(409, message="Course code already exists")
+            db.session.rollback()
+            abort(409, message="Course with this code already exists")
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            abort(500, message=str(e))
 
 @blp.route("/<int:course_id>")
 class CourseView(MethodView):
@@ -56,8 +47,7 @@ class CourseView(MethodView):
     @blp.response(200, CourseSchema)
     def get(self, course_id):
         """Get course details"""
-        course = Course.query.get_or_404(course_id)
-        return course
+        return Course.query.get_or_404(course_id)
 
     @jwt_required()
     @blp.arguments(CourseUpdateSchema)
@@ -66,18 +56,21 @@ class CourseView(MethodView):
         """Update course details (admin only)"""
         current_user = User.query.get_or_404(int(get_jwt_identity()))
         if not current_user.is_admin():
-            abort(403, message="Only admins can update courses")
+            abort(403, message="Admin access required")
 
         course = Course.query.get_or_404(course_id)
-
-        try:
-            for field in ['title', 'description', 'is_active']:
-                if field in course_data:
-                    setattr(course, field, course_data[field])
+        
+        for key, value in course_data.items():
+            setattr(course, key, value)
             
+        try:
             db.session.commit()
             return course
+        except IntegrityError:
+            db.session.rollback()
+            abort(409, message="Course with this code already exists")
         except SQLAlchemyError as e:
+            db.session.rollback()
             abort(500, message=str(e))
 
     @jwt_required()
@@ -88,8 +81,12 @@ class CourseView(MethodView):
             abort(403, message="Admin access required")
 
         course = Course.query.get_or_404(course_id)
-        db.session.delete(course)
-        db.session.commit()
-        return {"message": "Course deleted"}
+        try:
+            db.session.delete(course)
+            db.session.commit()
+            return {"message": "Course deleted successfully"}, 200
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            abort(500, message=str(e))
 
 

@@ -45,7 +45,7 @@ class TokenRefresh(MethodView):
         
         return {'access_token': access_token}
 
-@blp.route('/logout')
+@blp.route('/logout')  # Changed back to '/logout' since '/api/auth' is already the prefix
 class Logout(MethodView):
     @jwt_required()
     @blp.response(200)

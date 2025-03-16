@@ -157,6 +157,10 @@
   - Description: Get a specific score
   - Auth: JWT Required
   - Response: Score object
+  - Notes:
+    - Students can only view their own scores
+    - Teachers can only view scores for their classes
+    - Admins can see all scores
 
 - PUT /api/scores/<score_id>
   - Description: Update a score (teacher only)

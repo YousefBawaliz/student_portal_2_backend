@@ -3,6 +3,7 @@ import json
 import time
 from datetime import datetime, timedelta
 import uuid
+import random
 
 BASE_URL = "http://127.0.0.1:5000/api"
 
@@ -36,26 +37,23 @@ def get_unique_section_number():
     unique_id = str(uuid.uuid4())[:2]
     return f"T{timestamp}{unique_id}"
 
-def cleanup_test_courses():
-    """Helper function to clean up test courses"""
-    print("\nCleaning up test courses...")
-    headers = {"Authorization": f"Bearer {get_admin_token()}"}
+def cleanup_test_courses(admin_headers):
+    """Clean up test courses with retry mechanism"""
+    max_retries = 3
+    retry_delay = 1  # seconds
     
-    # First, let's see what courses exist
-    response = requests.get(f"{BASE_URL}/courses/", headers=headers)
-    if response.status_code == 200:
-        courses = response.json()
-        print(f"Found {len(courses)} courses")
-        for course in courses:
-            print(f"Found course: {course['course_code']} (ID: {course['id']})")
-            if course['course_code'].startswith('T'):  # Only delete our test courses
-                delete_response = requests.delete(
-                    f"{BASE_URL}/courses/{course['id']}", 
-                    headers=headers
-                )
-                print(f"Deleted course {course['course_code']}: {delete_response.status_code}")
-    else:
-        print(f"Failed to get courses: {response.status_code}")
+    courses_response = requests.get(f"{BASE_URL}/courses/", headers=admin_headers)
+    if courses_response.status_code == 200:
+        for course in courses_response.json():
+            if course['course_code'].startswith('T'):
+                for attempt in range(max_retries):
+                    delete_response = requests.delete(
+                        f"{BASE_URL}/courses/{course['id']}", 
+                        headers=admin_headers
+                    )
+                    if delete_response.status_code == 200:
+                        break
+                    time.sleep(retry_delay)
 
 def cleanup_test_classes():
     """Helper function to clean up test classes"""
@@ -124,67 +122,60 @@ def test_courses_flow():
     print("\n=== Testing Courses Flow ===")
     
     try:
-        # Clean up any leftover test courses first
-        cleanup_test_courses()
-        
         # Get admin token
-        access_token = get_admin_token()
-        headers = {
-            "Authorization": f"Bearer {access_token}",
+        admin_token = get_admin_token()
+        admin_headers = {
+            "Authorization": f"Bearer {admin_token}",
             "Content-Type": "application/json"
         }
+
+        # Clean up existing test courses
+        print("\nCleaning up test courses...")
+        cleanup_test_courses(admin_headers)
         
-        # First, let's check what courses exist
-        list_response = requests.get(f"{BASE_URL}/courses/", headers=headers)
-        print("\nExisting courses before creation:")
-        print(json.dumps(list_response.json(), indent=2))
-        
-        # Create new course
+        # Add delay after cleanup
+        time.sleep(2)
+
+        # 1. Create new course
         print("\n1. Creating new course...")
-        create_url = f"{BASE_URL}/courses/"
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        course_data = {
+            "course_code": f"T{timestamp[:6]}{random.choice('abcdef0123456789')}",
+            "title": f"Test Course {timestamp}",
+            "description": "This is a test course"
+        }
         
-        max_attempts = 3
-        course_id = None
+        # Add retry mechanism for course creation
+        max_retries = 3
+        retry_delay = 1
+        create_response = None
         
-        for attempt in range(max_attempts):
-            course_code = get_unique_course_code()
-            course_data = {
-                "course_code": course_code,
-                "title": f"Test Course {datetime.now().strftime('%Y%m%d-%H%M%S')}",
-                "description": "This is a test course"
-            }
-            
-            print(f"\nAttempt {attempt + 1}: Creating course with data:")
-            print(json.dumps(course_data, indent=2))
-            
-            create_response = requests.post(create_url, json=course_data, headers=headers)
-            print(f"Create course status: {create_response.status_code}")
-            print(f"Create course response: {json.dumps(create_response.json(), indent=2)}")
-            
+        for attempt in range(max_retries):
+            create_response = requests.post(
+                f"{BASE_URL}/courses/",
+                json=course_data,
+                headers=admin_headers
+            )
             if create_response.status_code == 201:
-                course_id = create_response.json()['id']
-                print(f"Successfully created course with ID: {course_id}")
                 break
+            time.sleep(retry_delay)
             
-            if attempt < max_attempts - 1:
-                print(f"Retrying course creation... (attempt {attempt + 2} of {max_attempts})")
-                time.sleep(1)  # Add a small delay between attempts
-            else:
-                raise Exception(f"Failed to create course after {max_attempts} attempts")
-        
-        if not course_id:
-            raise Exception("Failed to get course ID after creation")
-        
+        if create_response.status_code != 201:
+            raise Exception(f"Failed to create course after {max_retries} attempts: {create_response.status_code}")
+            
+        course_id = create_response.json()['id']
+        print(f"Created course with ID: {course_id}")
+
         # 2. Get all courses
         print("\n2. Getting all courses...")
-        list_response = requests.get(f"{BASE_URL}/courses/", headers=headers)
+        list_response = requests.get(f"{BASE_URL}/courses/", headers=admin_headers)
         print(f"List courses status: {list_response.status_code}")
         print(f"List courses response: {json.dumps(list_response.json(), indent=2)}")
         assert list_response.status_code == 200
         
         # 3. Get specific course
         print(f"\n3. Getting course with ID {course_id}...")
-        get_response = requests.get(f"{BASE_URL}/courses/{course_id}", headers=headers)
+        get_response = requests.get(f"{BASE_URL}/courses/{course_id}", headers=admin_headers)
         print(f"Get course status: {get_response.status_code}")
         print(f"Get course response: {json.dumps(get_response.json(), indent=2)}")
         assert get_response.status_code == 200
@@ -198,7 +189,7 @@ def test_courses_flow():
         update_response = requests.put(
             f"{BASE_URL}/courses/{course_id}",
             json=update_data,
-            headers=headers
+            headers=admin_headers
         )
         print(f"Update course status: {update_response.status_code}")
         print(f"Update course response: {json.dumps(update_response.json(), indent=2)}")
@@ -208,7 +199,7 @@ def test_courses_flow():
         print("\n5. Deleting course...")
         delete_response = requests.delete(
             f"{BASE_URL}/courses/{course_id}",
-            headers=headers
+            headers=admin_headers
         )
         print(f"Delete course status: {delete_response.status_code}")
         print(f"Delete course response: {delete_response.text}")
@@ -216,7 +207,7 @@ def test_courses_flow():
         
         # 6. Verify deletion
         print("\n6. Verifying course deletion...")
-        verify_response = requests.get(f"{BASE_URL}/courses/{course_id}", headers=headers)
+        verify_response = requests.get(f"{BASE_URL}/courses/{course_id}", headers=admin_headers)
         print(f"Verify delete status: {verify_response.status_code}")
         assert verify_response.status_code == 404
         
@@ -226,7 +217,7 @@ def test_courses_flow():
         raise
     finally:
         # Clean up after tests
-        cleanup_test_courses()
+        cleanup_test_courses(admin_headers)
 
 def test_classes_flow():
     print("\n=== Testing Classes Flow ===")
