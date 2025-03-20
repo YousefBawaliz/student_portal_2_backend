@@ -146,6 +146,23 @@
     - Teachers can only see scores for their classes
     - Admins can see all scores
 
+- GET /api/assessments/<assessment_id>/completion-stats
+  - Description: Get completion statistics for an assessment
+  - Auth: JWT Required (Teacher/Admin)
+  - Response: {
+      total_students: number,
+      completed_count: number,
+      pending_count: number,
+      completion_rate: number,
+      assessment_id: number,
+      assessment_title: string,
+      class_id: number,
+      due_date: string
+    }
+  - Notes:
+    - Only teachers of the class and admins can access these stats
+    - Completion rate is calculated as percentage of enrolled students with scores
+
 ## Score Endpoints (`/api/scores`)
 - POST /api/scores/
   - Description: Create a new score (teacher only)
